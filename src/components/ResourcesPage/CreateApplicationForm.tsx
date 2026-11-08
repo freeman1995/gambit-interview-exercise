@@ -1,25 +1,24 @@
-import { useState, type FormEvent } from 'react';
-import { Button, Group, Modal, Stack, Text, Textarea, TextInput } from '@mantine/core';
+import { useState, type ChangeEvent } from 'react';
+import { Button, Group, Stack, Text, Textarea, TextInput } from '@mantine/core';
 
 import type { NewApplication } from '../../hooks/useApplications.ts';
 
-interface CreateApplicationModalProps {
-  opened: boolean;
+interface CreateApplicationFormProps {
   resourceCount: number;
-  onClose: () => void;
-  onSubmit: (application: Omit<NewApplication, 'resourceIds'>) => void;
+  onCancel(): void;
+  onSubmit(application: Omit<NewApplication, 'resourceIds'>): void;
 }
 
 const CreateApplicationForm = ({
   resourceCount,
-  onClose,
+  onCancel,
   onSubmit,
-}: Omit<CreateApplicationModalProps, 'opened'>) => {
+}: CreateApplicationFormProps) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const trimmedName = name.trim();
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: ChangeEvent) => {
     event.preventDefault();
     if (!trimmedName) return;
     onSubmit({ name: trimmedName, description: description.trim() || undefined });
@@ -32,6 +31,7 @@ const CreateApplicationForm = ({
           Group {resourceCount} selected resource{resourceCount === 1 ? '' : 's'} into a new
           Application.
         </Text>
+
         <TextInput
           label="Name"
           placeholder="e.g. Payments API"
@@ -40,6 +40,7 @@ const CreateApplicationForm = ({
           value={name}
           onChange={(event) => setName(event.currentTarget.value)}
         />
+
         <Textarea
           label="Description"
           placeholder="Optional"
@@ -48,10 +49,12 @@ const CreateApplicationForm = ({
           value={description}
           onChange={(event) => setDescription(event.currentTarget.value)}
         />
+
         <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>
+          <Button variant="default" onClick={onCancel}>
             Cancel
           </Button>
+
           <Button type="submit" disabled={!trimmedName}>
             Create
           </Button>
@@ -61,11 +64,4 @@ const CreateApplicationForm = ({
   );
 };
 
-const CreateApplicationModal = ({ opened, ...formProps }: CreateApplicationModalProps) => (
-  <Modal opened={opened} onClose={formProps.onClose} title="Create Application" centered>
-    {/* Modal content unmounts when closed, so the form starts empty every time. */}
-    <CreateApplicationForm {...formProps} />
-  </Modal>
-);
-
-export default CreateApplicationModal;
+export default CreateApplicationForm;

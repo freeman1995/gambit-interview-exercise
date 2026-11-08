@@ -49,11 +49,9 @@ const ApplicationsPage = () => {
     data: visibleApplications,
     getRowId: (row) => row.id,
     ...sharedTableOptions<Application>(),
-
     state: { sorting, columnFilters },
     onSortingChange,
     onColumnFiltersChange,
-
     mantineTableBodyRowProps: ({ row }) => ({
       onClick: () => openGraph(row.id),
       style: { cursor: 'pointer' },
@@ -61,7 +59,7 @@ const ApplicationsPage = () => {
     renderEmptyRowsFallback: () => (
       <Text c="dimmed" ta="center" py="xl">
         {applications.length ? (
-          'No applications match the current filters.'
+          'No ApplicationsPage match the current filters.'
         ) : (
           <>
             No applications yet.{' '}

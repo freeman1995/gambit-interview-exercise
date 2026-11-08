@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import type { Application } from '../../types/applicationTypes.ts';
 import type { Resource } from '../../types/resourceTypes.ts';
 import { resourceSearchPath } from '../../utils/routingUtils.ts';
-import ApplicationGraph from './ApplicationGraph.tsx';
+import ApplicationGraph from './ApplicationGraph/ApplicationGraph.tsx';
 
 interface ApplicationGraphModalProps {
   opened: boolean;

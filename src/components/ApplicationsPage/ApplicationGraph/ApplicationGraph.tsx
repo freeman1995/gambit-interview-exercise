@@ -1,9 +1,9 @@
 import type { KeyboardEvent } from 'react';
 
-import { CRITICALITY_COLORS } from '../../constants/criticalityConstants.ts';
-import { PROVIDER_COLORS } from '../../constants/providerConstants.ts';
-import type { Application } from '../../types/applicationTypes.ts';
-import type { Resource } from '../../types/resourceTypes.ts';
+import { CRITICALITY_COLORS } from '../../../constants/criticalityConstants.ts';
+import { PROVIDER_COLORS } from '../../../constants/providerConstants.ts';
+import type { Application } from '../../../types/applicationTypes.ts';
+import type { Resource } from '../../../types/resourceTypes.ts';
 import classes from './ApplicationGraph.module.css';
 
 const WIDTH = 820;
@@ -52,7 +52,7 @@ interface ApplicationGraphProps {
   onResourceClick: (resource: Resource) => void;
 }
 
-/** Hub-and-spoke SVG: the Application in the middle, its resources around it. */
+/** Hub-and-spoke SVG: the Application in the middle, its ResourcesPage around it. */
 const ApplicationGraph = ({ application, resources, onResourceClick }: ApplicationGraphProps) => {
   const nodes = layoutOnCircle(resources);
 

@@ -14,7 +14,7 @@ import ValueBadge from './ValueBadge.tsx';
 interface FiltersPanelProps<T extends MRT_RowData> {
   table: MRT_TableInstance<T>;
   search: string;
-  onSearchChange: (value: string) => void;
+  onSearchChange(value: string): void;
   searchPlaceholder: string;
   /**
    * Renders an active filter value like the column's cells. Returning nothing falls back to a
@@ -57,8 +57,10 @@ const FiltersPanel = <T extends MRT_RowData>({
           {columnFilters.map(({ id, value }) => {
             const column = table.getColumn(id);
             const values = (Array.isArray(value) ? value : [value]).map(String);
+
             const removeValue = (removed: string) => {
               const remaining = values.filter((v) => v !== removed);
+
               column.setFilterValue(
                 Array.isArray(value) && remaining.length ? remaining : undefined,
               );
@@ -67,10 +69,12 @@ const FiltersPanel = <T extends MRT_RowData>({
             return (
               <Fragment key={id}>
                 <Divider orientation="vertical" />
+
                 <Group gap={6} wrap="wrap" aria-label={`${column.columnDef.header} filter`}>
                   <Text size="sm" c="dimmed" fw={500}>
                     {column.columnDef.header}:
                   </Text>
+
                   {values.map((v) => (
                     <Fragment key={v}>
                       {renderFilterValue?.(id, v, () => removeValue(v)) ??

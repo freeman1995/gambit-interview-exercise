@@ -2,6 +2,7 @@ import { useLocalStorage } from '@mantine/hooks';
 
 import { APPLICATIONS_STORAGE_KEY } from '../constants/applicationConstants.ts';
 import type { Application } from '../types/applicationTypes.ts';
+import { useCallback } from 'react';
 
 const deserialize = (raw: string | undefined): Application[] => {
   if (!raw) return [];
@@ -24,11 +25,14 @@ export const useApplications = () => {
     deserialize,
   });
 
-  const createApplication = (input: NewApplication): Application => {
-    const application: Application = { id: crypto.randomUUID(), ...input };
-    setApplications((prev) => [...prev, application]);
-    return application;
-  };
+  const createApplication = useCallback(
+    (input: NewApplication): Application => {
+      const application: Application = { id: crypto.randomUUID(), ...input };
+      setApplications((prev) => [...prev, application]);
+      return application;
+    },
+    [setApplications],
+  );
 
   return { applications, createApplication };
 };

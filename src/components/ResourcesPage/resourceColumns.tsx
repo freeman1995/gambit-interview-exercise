@@ -9,13 +9,12 @@ import type { Criticality, Environment, Provider, Resource } from '../../types/r
 import type { UrlFilterConfig } from '../../types/tableTypes.ts';
 import { disableLastColumnResizing } from '../../utils/tableUtils.ts';
 import MultiSelectFilter from '../common/MultiSelectFilter.tsx';
-import {
+import ResourceColumnBadge, {
   CriticalityBadge,
   EnvironmentBadge,
   ProviderBadge,
-  renderResourceFilterValue,
   TagBadge,
-} from './ResourceBadges.tsx';
+} from './ResourceColumnBadge.tsx';
 
 const uniqueSorted = (values: string[]) => [...new Set(values)].sort((a, b) => a.localeCompare(b));
 
@@ -52,7 +51,9 @@ const multiSelectFilter = (
       <MultiSelectFilter
         column={column}
         options={options}
-        renderValue={(value, onRemove) => renderResourceFilterValue(columnId, value, onRemove)}
+        renderValue={(value, onRemove) => (
+          <ResourceColumnBadge columnId={columnId} value={value} onRemove={onRemove} />
+        )}
       />
     ),
   };

@@ -37,38 +37,34 @@ export const PlainBadge = ({ value, ...props }: Props<string>) => (
   </ValueBadge>
 );
 
-/** Renders a resource column's filter value exactly like that column's cells. */
-// eslint-disable-next-line react-refresh/only-export-components
-export const renderResourceFilterValue = (
-  columnId: string,
-  value: string,
-  onRemove?: () => void,
-) => {
-  const removeLabel = `Remove ${value} filter`;
+interface ResourceColumnBadgeProps {
+  columnId: string;
+  value: string;
+  onRemove?(): void;
+}
+
+const ResourceColumnBadge = ({ columnId, value, onRemove }: ResourceColumnBadgeProps) => {
+  const commonProps = {
+    onRemove,
+    removeLabel: `Remove ${value} filter`,
+  };
+
   switch (columnId) {
     case 'provider':
-      return (
-        <ProviderBadge value={value as Provider} onRemove={onRemove} removeLabel={removeLabel} />
-      );
+      return <ProviderBadge value={value as Provider} {...commonProps} />;
+
     case 'environment':
-      return (
-        <EnvironmentBadge
-          value={value as Environment}
-          onRemove={onRemove}
-          removeLabel={removeLabel}
-        />
-      );
+      return <EnvironmentBadge value={value as Environment} {...commonProps} />;
+
     case 'criticality':
-      return (
-        <CriticalityBadge
-          value={value as Criticality}
-          onRemove={onRemove}
-          removeLabel={removeLabel}
-        />
-      );
+      return <CriticalityBadge value={value as Criticality} {...commonProps} />;
+
     case 'tags':
-      return <TagBadge value={value} onRemove={onRemove} removeLabel={removeLabel} />;
+      return <TagBadge value={value} {...commonProps} />;
+
     default:
-      return <PlainBadge value={value} onRemove={onRemove} removeLabel={removeLabel} />;
+      return <PlainBadge value={value} {...commonProps} />;
   }
 };
+
+export default ResourceColumnBadge;
