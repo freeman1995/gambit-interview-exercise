@@ -1,28 +1,32 @@
-import { useState } from 'react';
-import { Anchor, Stack, Text, Title } from '@mantine/core';
+import { useCallback, useMemo, useState, type FC } from 'react';
+import { Stack } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { MantineReactTable, useMantineReactTable } from 'mantine-react-table';
-import { Link } from 'react-router';
+import { MantineReactTable, type MRT_Row, useMantineReactTable } from 'mantine-react-table';
 
-import { ROUTES } from '../../constants/routingConstants.ts';
+import { CLICKABLE_ROW_STYLE } from '../../constants/tableConstants.ts';
 import { useApplications } from '../../hooks/useApplications.ts';
 import { useTableUrlState } from '../../hooks/useTableUrlState.ts';
 import type { Application } from '../../types/applicationTypes.ts';
-import { sharedTableOptions } from '../../utils/tableUtils.ts';
+import { resolveApplicationResources } from '../../utils/applicationUtils.ts';
+import { filterByName } from '../../utils/searchUtils.ts';
+import { getRowIdFromId, sharedTableOptions } from '../../utils/tableUtils.ts';
 import FiltersPanel from '../common/FiltersPanel.tsx';
+import PageHeader from '../common/PageHeader.tsx';
 import ApplicationGraphModal from './ApplicationGraphModal.tsx';
-import {
+import ApplicationsEmptyState from './ApplicationsEmptyState.tsx';
+import applicationColumns, {
   APPLICATION_SORTABLE_COLUMN_IDS,
   APPLICATION_URL_FILTERS,
-  applicationColumns,
-  renderResourceIdValue,
-  resolveResources,
 } from './applicationColumns.tsx';
+import ResourceIdBadge from './ResourceIdBadge.tsx';
 
+/** Resource filter values in the FiltersPanel look like the Resources column's badges. */
 const renderApplicationFilterValue = (columnId: string, value: string, onRemove?: () => void) =>
-  columnId === 'resourceIds' ? renderResourceIdValue(value, onRemove) : undefined;
+  columnId === 'resourceIds' ? (
+    <ResourceIdBadge resourceId={value} onRemove={onRemove} />
+  ) : undefined;
 
-const ApplicationsPage = () => {
+const ApplicationsPage: FC = () => {
   // See ResourcesPage: React Compiler memoization breaks TanStack table re-renders.
   'use no memo';
   const { applications } = useApplications();
@@ -31,56 +35,63 @@ const ApplicationsPage = () => {
 
   // The selected id is kept after closing so the modal content doesn't blank out mid-animation.
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [graphOpened, graph] = useDisclosure(false);
-  const selectedApplication = applications.find((app) => app.id === selectedId) ?? null;
+  const [graphOpened, { open: openGraphModal, close: closeGraphModal }] = useDisclosure(false);
 
-  const openGraph = (id: string) => {
-    setSelectedId(id);
-    graph.open();
-  };
+  const selectedApplication = useMemo(
+    () => applications.find((app) => app.id === selectedId) ?? null,
+    [applications, selectedId],
+  );
 
-  const normalizedSearch = search.toLowerCase();
-  const visibleApplications = normalizedSearch
-    ? applications.filter((app) => app.name.toLowerCase().includes(normalizedSearch))
-    : applications;
+  const graphResources = useMemo(
+    () => (selectedApplication ? resolveApplicationResources(selectedApplication) : []),
+    [selectedApplication],
+  );
+
+  const visibleApplications = useMemo(
+    () => filterByName(applications, search),
+    [applications, search],
+  );
+
+  const openGraph = useCallback(
+    (id: string) => {
+      setSelectedId(id);
+      openGraphModal();
+    },
+    [openGraphModal],
+  );
+
+  const getRowProps = useCallback(
+    ({ row }: { row: MRT_Row<Application> }) => ({
+      onClick: () => openGraph(row.id),
+      style: CLICKABLE_ROW_STYLE,
+    }),
+    [openGraph],
+  );
+
+  const hasApplications = applications.length > 0;
+  const renderEmptyRowsFallback = useCallback(
+    () => <ApplicationsEmptyState hasApplications={hasApplications} />,
+    [hasApplications],
+  );
 
   const table = useMantineReactTable({
     columns: applicationColumns,
     data: visibleApplications,
-    getRowId: (row) => row.id,
+    getRowId: getRowIdFromId,
     ...sharedTableOptions<Application>(),
     state: { sorting, columnFilters },
     onSortingChange,
     onColumnFiltersChange,
-    mantineTableBodyRowProps: ({ row }) => ({
-      onClick: () => openGraph(row.id),
-      style: { cursor: 'pointer' },
-    }),
-    renderEmptyRowsFallback: () => (
-      <Text c="dimmed" ta="center" py="xl">
-        {applications.length ? (
-          'No ApplicationsPage match the current filters.'
-        ) : (
-          <>
-            No applications yet.{' '}
-            <Anchor component={Link} to={ROUTES.resources}>
-              Select some resources
-            </Anchor>{' '}
-            to create one.
-          </>
-        )}
-      </Text>
-    ),
+    mantineTableBodyRowProps: getRowProps,
+    renderEmptyRowsFallback,
   });
 
   return (
     <Stack gap="md" flex={1}>
-      <div>
-        <Title order={2}>Applications</Title>
-        <Text c="dimmed" size="sm">
-          Click an application to see its resource graph, or a resource to open it.
-        </Text>
-      </div>
+      <PageHeader
+        title="Applications"
+        description="Click an application to see its resource graph, or a resource to open it."
+      />
 
       <FiltersPanel
         table={table}
@@ -95,8 +106,8 @@ const ApplicationsPage = () => {
       <ApplicationGraphModal
         opened={graphOpened && !!selectedApplication}
         application={selectedApplication}
-        resources={selectedApplication ? resolveResources(selectedApplication) : []}
-        onClose={graph.close}
+        resources={graphResources}
+        onClose={closeGraphModal}
       />
     </Stack>
   );

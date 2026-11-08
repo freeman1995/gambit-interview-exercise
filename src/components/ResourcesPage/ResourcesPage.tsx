@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Group, Modal, Stack, Text, Title } from '@mantine/core';
+import { useCallback, useMemo, useState, type FC } from 'react';
+import { Modal, Stack } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
   getMRT_RowSelectionHandler,
@@ -10,22 +10,32 @@ import {
 import { useNavigate } from 'react-router';
 
 import { ROUTES } from '../../constants/routingConstants.ts';
-import { RESOURCES, RESOURCES_BY_ID } from '../../data/resources.ts';
-import { useApplications } from '../../hooks/useApplications.ts';
+import { CLICKABLE_ROW_STYLE } from '../../constants/tableConstants.ts';
+import { RESOURCES } from '../../data/resources.ts';
+import { useApplications, type NewApplication } from '../../hooks/useApplications.ts';
 import { useTableUrlState } from '../../hooks/useTableUrlState.ts';
 import type { Resource } from '../../types/resourceTypes.ts';
-import { sharedTableOptions } from '../../utils/tableUtils.ts';
+import { resolveResourceIds } from '../../utils/resourceUtils.ts';
+import { filterByName } from '../../utils/searchUtils.ts';
+import { getRowIdFromId, getSelectedIds, sharedTableOptions } from '../../utils/tableUtils.ts';
 import FiltersPanel from '../common/FiltersPanel.tsx';
+import PageHeader from '../common/PageHeader.tsx';
+import CreateApplicationForm from './CreateApplicationForm.tsx';
 import ResourceColumnBadge from './ResourceColumnBadge.tsx';
-import {
+import resourceColumns, {
   RESOURCE_SORTABLE_COLUMN_IDS,
   RESOURCE_URL_FILTERS,
-  resourceColumns,
 } from './resourceColumns.tsx';
 import SelectionFooter from './SelectionFooter.tsx';
-import CreateApplicationForm from './CreateApplicationForm.tsx';
 
-const ResourcesPage = () => {
+type RowSelectionHandlerArgs = Parameters<typeof getMRT_RowSelectionHandler<Resource>>[0];
+
+/** Active filter values in the FiltersPanel look like the column's cells. */
+const renderResourceFilterValue = (columnId: string, value: string, onRemove?: () => void) => (
+  <ResourceColumnBadge columnId={columnId} value={value} onRemove={onRemove} />
+);
+
+const ResourcesPage: FC = () => {
   // TanStack's `table` instance is mutated in place (stable reference), so React Compiler's
   // memoization would stop <MantineReactTable> from re-rendering when data/state change.
   'use no memo';
@@ -34,34 +44,30 @@ const ResourcesPage = () => {
   const { search, setSearch, sorting, onSortingChange, columnFilters, onColumnFiltersChange } =
     useTableUrlState(RESOURCE_URL_FILTERS, RESOURCE_SORTABLE_COLUMN_IDS);
   const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
-  const [
-    createModalOpened,
-    { open: openCreateApplicationModal, close: closeCreateApplicationModal },
-  ] = useDisclosure(false);
+  const [createModalOpened, { open: openCreateModal, close: closeCreateModal }] =
+    useDisclosure(false);
 
-  // TODO: create a util function
-  const visibleResources = useMemo(() => {
-    const normalizedSearch = search.toLowerCase();
-
-    return normalizedSearch
-      ? RESOURCES.filter((resource) => resource.name.toLowerCase().includes(normalizedSearch))
-      : RESOURCES;
-  }, [search]);
+  const visibleResources = useMemo(() => filterByName(RESOURCES, search), [search]);
 
   // Selection is kept even for rows hidden by search/filters.
-  const selectedResources = useMemo(
-    () =>
-      Object.keys(rowSelection)
-        .filter((id) => rowSelection[id])
-        .map((id) => RESOURCES_BY_ID.get(id))
-        .filter((resource): resource is Resource => !!resource),
-    [rowSelection],
+  const selectedIds = useMemo(() => getSelectedIds(rowSelection), [rowSelection]);
+  const selectedResources = useMemo(() => resolveResourceIds(selectedIds), [selectedIds]);
+
+  const clearSelection = useCallback(() => setRowSelection({}), []);
+
+  // Clicking anywhere on a row toggles its selection (shift-click selects a range).
+  const getRowProps = useCallback(
+    (args: RowSelectionHandlerArgs) => ({
+      onClick: getMRT_RowSelectionHandler(args),
+      style: CLICKABLE_ROW_STYLE,
+    }),
+    [],
   );
 
   const table = useMantineReactTable({
     columns: resourceColumns,
     data: visibleResources,
-    getRowId: (row) => row.id,
+    getRowId: getRowIdFromId,
     ...sharedTableOptions<Resource>(),
     enableRowSelection: true,
     positionToolbarAlertBanner: 'none',
@@ -69,45 +75,32 @@ const ResourcesPage = () => {
     onSortingChange,
     onColumnFiltersChange,
     onRowSelectionChange: setRowSelection,
-    // Clicking anywhere on a row toggles its selection (shift-click selects a range).
-    mantineTableBodyRowProps: ({ row, renderedRowIndex, table }) => ({
-      onClick: (event) => getMRT_RowSelectionHandler({ row, table, renderedRowIndex })(event),
-      style: { cursor: 'pointer' },
-    }),
+    mantineTableBodyRowProps: getRowProps,
   });
 
   const handleCreate = useCallback(
-    ({ name, description }: { name: string; description?: string }) => {
-      createApplication({ name, description, resourceIds: selectedResources.map((r) => r.id) });
-      closeCreateApplicationModal();
-      setRowSelection({});
+    ({ name, description }: Omit<NewApplication, 'resourceIds'>) => {
+      createApplication({ name, description, resourceIds: selectedIds });
+      closeCreateModal();
+      clearSelection();
       navigate(ROUTES.applications);
     },
-    [createApplication, closeCreateApplicationModal, navigate, selectedResources],
+    [createApplication, closeCreateModal, clearSelection, navigate, selectedIds],
   );
 
   return (
     <Stack gap="md" flex={1}>
-      <Group justify="space-between" align="flex-end">
-        <div>
-          <Title order={2}>Resources</Title>
-          <Text c="dimmed" size="sm">
-            Click rows to select resources, then group them into an Application.
-          </Text>
-        </div>
-      </Group>
+      <PageHeader
+        title="Resources"
+        description="Click rows to select resources, then group them into an Application."
+      />
 
       <FiltersPanel
         table={table}
         search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Search resources by name"
-        renderFilterValue={useCallback(
-          (columnId, args) => (
-            <ResourceColumnBadge columnId={columnId} value={args} />
-          ),
-          [],
-        )}
+        renderFilterValue={renderResourceFilterValue}
       />
 
       <MantineReactTable table={table} />
@@ -115,21 +108,21 @@ const ResourcesPage = () => {
       {selectedResources.length > 0 && (
         <SelectionFooter
           selected={selectedResources}
-          onClear={() => setRowSelection({})}
-          onCreateApplication={openCreateApplicationModal}
+          onClear={clearSelection}
+          onCreateApplication={openCreateModal}
         />
       )}
 
       <Modal
         opened={createModalOpened}
-        onClose={closeCreateApplicationModal}
+        onClose={closeCreateModal}
         title="Create Application"
         centered
       >
         <CreateApplicationForm
           resourceCount={selectedResources.length}
           onSubmit={handleCreate}
-          onCancel={closeCreateApplicationModal}
+          onCancel={closeCreateModal}
         />
       </Modal>
     </Stack>

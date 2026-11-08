@@ -1,3 +1,4 @@
+import type { FC } from 'react';
 import { Badge, Button, Group, Paper, ScrollArea, Text } from '@mantine/core';
 import { IconApps } from '@tabler/icons-react';
 
@@ -9,7 +10,7 @@ interface SelectionFooterProps {
   onCreateApplication: () => void;
 }
 
-const SelectionFooter = ({ selected, onClear, onCreateApplication }: SelectionFooterProps) => (
+const SelectionFooter: FC<SelectionFooterProps> = ({ selected, onClear, onCreateApplication }) => (
   <Paper
     pos="sticky"
     bottom={0}

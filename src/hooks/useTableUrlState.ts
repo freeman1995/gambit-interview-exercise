@@ -15,7 +15,7 @@ const resolveUpdater = <T>(updater: MRT_Updater<T>, previous: T): T =>
 
 /**
  * Keeps a table's search / column filters / sorting in the URL,
- * so they survive refreshes and can be deep-linked (e.g. `/ResourcesPage?q=auth-keyvault`).
+ * so they survive refreshes and can be deep-linked (e.g. `/resources?q=auth-keyvault`).
  */
 export const useTableUrlState = (
   filterConfig: UrlFilterConfig,

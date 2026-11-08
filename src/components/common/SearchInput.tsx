@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState, type ChangeEvent, type FC } from 'react';
 import { CloseButton, TextInput } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
 import { IconSearch } from '@tabler/icons-react';
@@ -12,7 +12,7 @@ interface SearchInputProps {
 }
 
 /** Text input that updates immediately but reports changes to the parent debounced. */
-const SearchInput = ({ value, onChange, placeholder }: SearchInputProps) => {
+const SearchInput: FC<SearchInputProps> = ({ value, onChange, placeholder }) => {
   const [inputValue, setInputValue] = useState(value);
   const [lastExternalValue, setLastExternalValue] = useState(value);
   const debouncedOnChange = useDebouncedCallback(onChange, SEARCH_DEBOUNCE_MS);
@@ -23,22 +23,26 @@ const SearchInput = ({ value, onChange, placeholder }: SearchInputProps) => {
     setInputValue(value);
   }
 
-  const handleChange = (next: string) => {
-    setInputValue(next);
-    debouncedOnChange(next);
-  };
+  const handleChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const next = event.currentTarget.value;
+      setInputValue(next);
+      debouncedOnChange(next);
+    },
+    [debouncedOnChange],
+  );
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     debouncedOnChange.cancel();
     setInputValue('');
     onChange('');
-  };
+  }, [debouncedOnChange, onChange]);
 
   return (
     <TextInput
       w={320}
       value={inputValue}
-      onChange={(event) => handleChange(event.currentTarget.value)}
+      onChange={handleChange}
       placeholder={placeholder}
       aria-label={placeholder}
       leftSection={<IconSearch size={16} />}

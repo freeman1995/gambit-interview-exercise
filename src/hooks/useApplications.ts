@@ -1,8 +1,8 @@
+import { useCallback } from 'react';
 import { useLocalStorage } from '@mantine/hooks';
 
 import { APPLICATIONS_STORAGE_KEY } from '../constants/applicationConstants.ts';
 import type { Application } from '../types/applicationTypes.ts';
-import { useCallback } from 'react';
 
 const deserialize = (raw: string | undefined): Application[] => {
   if (!raw) return [];

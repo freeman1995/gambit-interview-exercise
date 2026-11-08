@@ -1,5 +1,7 @@
-import type { MouseEvent } from 'react';
+import { useCallback, type FC, type MouseEvent } from 'react';
 import { Badge, type BadgeProps, CloseButton } from '@mantine/core';
+
+import { preventDefault } from '../../utils/eventUtils.ts';
 
 export interface ValueBadgeProps extends BadgeProps {
   /** When set, the badge gets a small × button (used for selected filter values). */
@@ -8,11 +10,14 @@ export interface ValueBadgeProps extends BadgeProps {
 }
 
 /** Badge used for cell values, filter options/selections and the active-filters panel. */
-const ValueBadge = ({ onRemove, removeLabel, children, ...badgeProps }: ValueBadgeProps) => {
-  const handleRemove = (event: MouseEvent) => {
-    event.stopPropagation();
-    onRemove?.();
-  };
+const ValueBadge: FC<ValueBadgeProps> = ({ onRemove, removeLabel, children, ...badgeProps }) => {
+  const handleRemove = useCallback(
+    (event: MouseEvent) => {
+      event.stopPropagation();
+      onRemove?.();
+    },
+    [onRemove],
+  );
 
   return (
     <Badge
@@ -27,7 +32,7 @@ const ValueBadge = ({ onRemove, removeLabel, children, ...badgeProps }: ValueBad
             c="inherit"
             aria-label={removeLabel ?? 'Remove'}
             // Keep focus (and any open dropdown) where it is.
-            onMouseDown={(event) => event.preventDefault()}
+            onMouseDown={preventDefault}
             onClick={handleRemove}
           />
         ) : undefined

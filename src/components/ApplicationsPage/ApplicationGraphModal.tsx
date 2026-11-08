@@ -1,9 +1,11 @@
+import { useCallback, useMemo, type FC } from 'react';
 import { Badge, Group, Modal, Stack, Text } from '@mantine/core';
 import { useNavigate } from 'react-router';
 
 import type { Application } from '../../types/applicationTypes.ts';
 import type { Resource } from '../../types/resourceTypes.ts';
 import { resourceSearchPath } from '../../utils/routingUtils.ts';
+import { pluralize } from '../../utils/stringUtils.ts';
 import ApplicationGraph from './ApplicationGraph/ApplicationGraph.tsx';
 
 interface ApplicationGraphModalProps {
@@ -13,29 +15,33 @@ interface ApplicationGraphModalProps {
   onClose: () => void;
 }
 
-const ApplicationGraphModal = ({
+const ApplicationGraphModal: FC<ApplicationGraphModalProps> = ({
   opened,
   application,
   resources,
   onClose,
-}: ApplicationGraphModalProps) => {
+}) => {
   const navigate = useNavigate();
 
-  const showResource = (resource: Resource) => navigate(resourceSearchPath(resource.name));
+  const showResource = useCallback(
+    (resource: Resource) => navigate(resourceSearchPath(resource.name)),
+    [navigate],
+  );
+
+  const applicationName = application?.name;
+  const resourceCount = resources.length;
+  const title = useMemo(
+    () => (
+      <Group gap="xs">
+        <Text fw={700}>{applicationName}</Text>
+        <Badge variant="light">{pluralize(resourceCount, 'resource')}</Badge>
+      </Group>
+    ),
+    [applicationName, resourceCount],
+  );
 
   return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      size="xl"
-      centered
-      title={
-        <Group gap="xs">
-          <Text fw={700}>{application?.name}</Text>
-          <Badge variant="light">{resources.length} resources</Badge>
-        </Group>
-      }
-    >
+    <Modal opened={opened} onClose={onClose} size="xl" centered title={title}>
       {application && (
         <Stack gap="xs">
           {application.description && <Text c="dimmed">{application.description}</Text>}

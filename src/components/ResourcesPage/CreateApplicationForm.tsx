@@ -1,7 +1,8 @@
-import { useState, type ChangeEvent } from 'react';
+import { useCallback, useState, type ChangeEvent, type FC, type FormEvent } from 'react';
 import { Button, Group, Stack, Text, Textarea, TextInput } from '@mantine/core';
 
 import type { NewApplication } from '../../hooks/useApplications.ts';
+import { pluralize } from '../../utils/stringUtils.ts';
 
 interface CreateApplicationFormProps {
   resourceCount: number;
@@ -9,27 +10,39 @@ interface CreateApplicationFormProps {
   onSubmit(application: Omit<NewApplication, 'resourceIds'>): void;
 }
 
-const CreateApplicationForm = ({
+const CreateApplicationForm: FC<CreateApplicationFormProps> = ({
   resourceCount,
   onCancel,
   onSubmit,
-}: CreateApplicationFormProps) => {
+}) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const trimmedName = name.trim();
 
-  const handleSubmit = (event: ChangeEvent) => {
-    event.preventDefault();
-    if (!trimmedName) return;
-    onSubmit({ name: trimmedName, description: description.trim() || undefined });
-  };
+  const handleNameChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => setName(event.currentTarget.value),
+    [],
+  );
+
+  const handleDescriptionChange = useCallback(
+    (event: ChangeEvent<HTMLTextAreaElement>) => setDescription(event.currentTarget.value),
+    [],
+  );
+
+  const handleSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!trimmedName) return;
+      onSubmit({ name: trimmedName, description: description.trim() || undefined });
+    },
+    [trimmedName, description, onSubmit],
+  );
 
   return (
     <form onSubmit={handleSubmit}>
       <Stack>
         <Text size="sm" c="dimmed">
-          Group {resourceCount} selected resource{resourceCount === 1 ? '' : 's'} into a new
-          Application.
+          Group {pluralize(resourceCount, 'selected resource')} into a new Application.
         </Text>
 
         <TextInput
@@ -38,7 +51,7 @@ const CreateApplicationForm = ({
           required
           data-autofocus
           value={name}
-          onChange={(event) => setName(event.currentTarget.value)}
+          onChange={handleNameChange}
         />
 
         <Textarea
@@ -47,7 +60,7 @@ const CreateApplicationForm = ({
           autosize
           minRows={2}
           value={description}
-          onChange={(event) => setDescription(event.currentTarget.value)}
+          onChange={handleDescriptionChange}
         />
 
         <Group justify="flex-end">

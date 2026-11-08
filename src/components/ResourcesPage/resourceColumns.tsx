@@ -1,5 +1,5 @@
 import { Group } from '@mantine/core';
-import type { MRT_ColumnDef, MRT_FilterFn, MRT_SortingFn } from 'mantine-react-table';
+import type { MRT_ColumnDef } from 'mantine-react-table';
 
 import { CRITICALITIES } from '../../constants/criticalityConstants.ts';
 import { ENVIRONMENTS } from '../../constants/environmentConstants.ts';
@@ -7,7 +7,15 @@ import { PROVIDERS } from '../../constants/providerConstants.ts';
 import { RESOURCES } from '../../data/resources.ts';
 import type { Criticality, Environment, Provider, Resource } from '../../types/resourceTypes.ts';
 import type { UrlFilterConfig } from '../../types/tableTypes.ts';
-import { disableLastColumnResizing } from '../../utils/tableUtils.ts';
+import { uniqueSorted } from '../../utils/arrayUtils.ts';
+import {
+  byJoinedValues,
+  byRank,
+  disableLastColumnResizing,
+  getColumnIds,
+  matchesAnyOf,
+  toFilterOptions,
+} from '../../utils/tableUtils.ts';
 import MultiSelectFilter from '../common/MultiSelectFilter.tsx';
 import ResourceColumnBadge, {
   CriticalityBadge,
@@ -16,35 +24,13 @@ import ResourceColumnBadge, {
   TagBadge,
 } from './ResourceColumnBadge.tsx';
 
-const uniqueSorted = (values: string[]) => [...new Set(values)].sort((a, b) => a.localeCompare(b));
-
-/** Multi-select filter: matches when the cell value (or any of its items, for arrays) is selected. */
-const matchesAnyOf: MRT_FilterFn<Resource> = (row, columnId, filterValue: string[]) => {
-  if (!filterValue?.length) return true;
-  const value = row.getValue<string | string[]>(columnId);
-  return Array.isArray(value)
-    ? value.some((item) => filterValue.includes(item))
-    : filterValue.includes(value);
-};
-
-/** Sorts by the position of the value in `order` instead of alphabetically. */
-const byRank =
-  (order: readonly string[]): MRT_SortingFn<Resource> =>
-  (rowA, rowB, columnId) =>
-    order.indexOf(rowA.getValue(columnId)) - order.indexOf(rowB.getValue(columnId));
-
-const byJoinedTags: MRT_SortingFn<Resource> = (rowA, rowB, columnId) =>
-  rowA
-    .getValue<string[]>(columnId)
-    .join(',')
-    .localeCompare(rowB.getValue<string[]>(columnId).join(','));
-
 /** Multi-select filter whose options and selections look like the column's cells. */
 const multiSelectFilter = (
   columnId: string,
-  values: string[],
+  values: readonly string[],
 ): Partial<MRT_ColumnDef<Resource>> => {
-  const options = values.map((value) => ({ value, label: value }));
+  const options = toFilterOptions(values);
+
   return {
     filterFn: matchesAnyOf,
     Filter: ({ column }) => (
@@ -59,7 +45,7 @@ const multiSelectFilter = (
   };
 };
 
-export const resourceColumns = disableLastColumnResizing<Resource>([
+const resourceColumns = disableLastColumnResizing<Resource>([
   {
     accessorKey: 'name',
     header: 'Name',
@@ -119,7 +105,7 @@ export const resourceColumns = disableLastColumnResizing<Resource>([
     header: 'Tags',
     size: 240,
     ...multiSelectFilter('tags', uniqueSorted(RESOURCES.flatMap((r) => r.tags))),
-    sortingFn: byJoinedTags,
+    sortingFn: byJoinedValues,
     Cell: ({ cell }) => (
       <Group gap={4} wrap="wrap">
         {cell.getValue<string[]>().map((tag) => (
@@ -130,7 +116,7 @@ export const resourceColumns = disableLastColumnResizing<Resource>([
   },
 ]);
 
-export const RESOURCE_SORTABLE_COLUMN_IDS = resourceColumns.map((c) => c.accessorKey as string);
+export const RESOURCE_SORTABLE_COLUMN_IDS = getColumnIds(resourceColumns);
 
 /** Which column filters are mirrored in the URL, and how. */
 export const RESOURCE_URL_FILTERS: UrlFilterConfig = {
@@ -143,3 +129,5 @@ export const RESOURCE_URL_FILTERS: UrlFilterConfig = {
   owner: 'multi',
   tags: 'multi',
 };
+
+export default resourceColumns;

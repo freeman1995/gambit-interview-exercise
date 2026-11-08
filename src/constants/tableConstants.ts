@@ -6,3 +6,6 @@ export const URL_PARAMS = {
   search: 'q',
   sort: 'sort',
 } as const;
+
+/** Row style for tables whose rows react to clicks. */
+export const CLICKABLE_ROW_STYLE = { cursor: 'pointer' } as const;

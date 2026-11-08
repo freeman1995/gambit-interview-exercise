@@ -1,3 +1,4 @@
+import type { FC } from 'react';
 import { AppShell, Group, Title } from '@mantine/core';
 import { Navigate, Route, Routes } from 'react-router';
 
@@ -6,7 +7,7 @@ import ApplicationsPage from './ApplicationsPage/ApplicationsPage.tsx';
 import ResourcesPage from './ResourcesPage/ResourcesPage.tsx';
 import AppNavBar from './AppNavBar.tsx';
 
-const App = () => {
+const App: FC = () => {
   return (
     <AppShell header={{ height: 60 }} padding="lg">
       <AppShell.Header>

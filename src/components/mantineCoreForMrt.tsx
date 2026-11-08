@@ -8,6 +8,7 @@
  * global filter and progress bars never open (and React warns about an unknown `in` attribute).
  * Everything else is re-exported from Mantine as-is.
  */
+import type { FC } from 'react';
 import { Collapse as MantineCollapse, type CollapseProps } from '@mantine/core';
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -15,6 +16,6 @@ export * from '@mantine/core';
 
 type LegacyCollapseProps = Omit<CollapseProps, 'expanded'> & { in?: boolean; expanded?: boolean };
 
-export const Collapse = ({ in: legacyIn, expanded, ...props }: LegacyCollapseProps) => (
+export const Collapse: FC<LegacyCollapseProps> = ({ in: legacyIn, expanded, ...props }) => (
   <MantineCollapse expanded={expanded ?? legacyIn ?? false} {...props} />
 );

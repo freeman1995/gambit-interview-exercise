@@ -1,3 +1,4 @@
+import type { FC } from 'react';
 import { Button, Group } from '@mantine/core';
 import { IconApps, IconServer2 } from '@tabler/icons-react';
 import { Link, useLocation } from 'react-router';
@@ -9,7 +10,7 @@ const NAV_ITEMS = [
   { to: ROUTES.applications, label: 'Applications', icon: IconApps },
 ];
 
-const AppNavBar = () => {
+const AppNavBar: FC = () => {
   const { pathname } = useLocation();
 
   return (

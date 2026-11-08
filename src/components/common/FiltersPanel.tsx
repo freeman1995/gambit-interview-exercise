@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, useCallback, type ReactNode } from 'react';
 import { Button, Divider, Group, Paper, Text } from '@mantine/core';
 import {
   MRT_ShowHideColumnsButton,
@@ -7,8 +7,9 @@ import {
   type MRT_TableInstance,
 } from 'mantine-react-table';
 
+import type { FilterValueRenderer } from '../../types/tableTypes.ts';
+import ActiveColumnFilter from './ActiveColumnFilter.tsx';
 import SearchInput from './SearchInput.tsx';
-import type { FilterValueRenderer } from './MultiSelectFilter.tsx';
 import ValueBadge from './ValueBadge.tsx';
 
 interface FiltersPanelProps<T extends MRT_RowData> {
@@ -23,15 +24,11 @@ interface FiltersPanelProps<T extends MRT_RowData> {
   renderFilterValue?: (columnId: string, ...args: Parameters<FilterValueRenderer>) => ReactNode;
 }
 
-const renderDefaultFilterValue = (value: string, onRemove?: () => void) => (
-  <ValueBadge variant="default" fw={500} onRemove={onRemove} removeLabel={`Remove ${value} filter`}>
-    {value}
-  </ValueBadge>
-);
-
 /**
  * Panel above a table: name search, every active column filter (removable one value at a time)
  * and the table's view actions. Column filters themselves are edited in header popovers.
+ *
+ * Generic over the row type, so it's a plain generic function rather than `FC<Props>`.
  */
 const FiltersPanel = <T extends MRT_RowData>({
   table,
@@ -40,13 +37,35 @@ const FiltersPanel = <T extends MRT_RowData>({
   searchPlaceholder,
   renderFilterValue,
 }: FiltersPanelProps<T>) => {
+  // Not memoized: `table` is a mutable TanStack instance, its reference doesn't change.
   const columnFilters = table.getState().columnFilters;
   const hasFilters = columnFilters.length > 0 || !!search;
 
-  const clearAll = () => {
+  const clearAll = useCallback(() => {
     table.resetColumnFilters(true);
     onSearchChange('');
-  };
+  }, [table, onSearchChange]);
+
+  const setColumnFilter = useCallback(
+    (columnId: string, value: string[] | undefined) =>
+      table.getColumn(columnId).setFilterValue(value),
+    [table],
+  );
+
+  const renderValue = useCallback(
+    (columnId: string, value: string, onRemove: () => void) =>
+      renderFilterValue?.(columnId, value, onRemove) ?? (
+        <ValueBadge
+          variant="default"
+          fw={500}
+          onRemove={onRemove}
+          removeLabel={`Remove ${value} filter`}
+        >
+          {value}
+        </ValueBadge>
+      ),
+    [renderFilterValue],
+  );
 
   return (
     <Paper withBorder shadow="xs" p="sm">
@@ -54,37 +73,18 @@ const FiltersPanel = <T extends MRT_RowData>({
         <Group gap="sm" align="center" style={{ flex: 1 }} miw={0}>
           <SearchInput value={search} onChange={onSearchChange} placeholder={searchPlaceholder} />
 
-          {columnFilters.map(({ id, value }) => {
-            const column = table.getColumn(id);
-            const values = (Array.isArray(value) ? value : [value]).map(String);
-
-            const removeValue = (removed: string) => {
-              const remaining = values.filter((v) => v !== removed);
-
-              column.setFilterValue(
-                Array.isArray(value) && remaining.length ? remaining : undefined,
-              );
-            };
-
-            return (
-              <Fragment key={id}>
-                <Divider orientation="vertical" />
-
-                <Group gap={6} wrap="wrap" aria-label={`${column.columnDef.header} filter`}>
-                  <Text size="sm" c="dimmed" fw={500}>
-                    {column.columnDef.header}:
-                  </Text>
-
-                  {values.map((v) => (
-                    <Fragment key={v}>
-                      {renderFilterValue?.(id, v, () => removeValue(v)) ??
-                        renderDefaultFilterValue(v, () => removeValue(v))}
-                    </Fragment>
-                  ))}
-                </Group>
-              </Fragment>
-            );
-          })}
+          {columnFilters.map(({ id, value }) => (
+            <Fragment key={id}>
+              <Divider orientation="vertical" />
+              <ActiveColumnFilter
+                columnId={id}
+                label={String(table.getColumn(id).columnDef.header)}
+                value={value}
+                onFilterChange={setColumnFilter}
+                renderFilterValue={renderValue}
+              />
+            </Fragment>
+          ))}
 
           {!columnFilters.length && (
             <Text size="sm" c="dimmed">

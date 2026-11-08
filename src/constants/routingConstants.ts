@@ -1,4 +1,4 @@
 export const ROUTES = {
-  resources: '/ResourcesPage',
-  applications: '/ApplicationsPage',
+  resources: '/resources',
+  applications: '/applications',
 } as const;

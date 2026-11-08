@@ -2,11 +2,12 @@ import type {
   MRT_ColumnDef,
   MRT_ColumnFiltersState,
   MRT_RowData,
+  MRT_RowSelectionState,
   MRT_SortingState,
   MRT_TableOptions,
 } from 'mantine-react-table';
 
-import type { UrlFilterConfig } from '../types/tableTypes.ts';
+import type { FilterOption, UrlFilterConfig } from '../types/tableTypes.ts';
 
 // ---------------------------------------------------------------------------------------------
 // Table setup
@@ -34,6 +35,77 @@ export const disableLastColumnResizing = <T extends MRT_RowData>(
   columns.map((column, index) =>
     index === columns.length - 1 ? { ...column, enableResizing: false } : column,
   );
+
+/** `getRowId` for rows that carry their own id. */
+export const getRowIdFromId = <T extends { id: string }>(row: T): string => row.id;
+
+/** Ids of the given columns (explicit `id`, else `accessorKey`). */
+export const getColumnIds = <T extends MRT_RowData>(columns: MRT_ColumnDef<T>[]): string[] =>
+  columns.map((column) => column.id ?? String(column.accessorKey));
+
+/** Ids of the selected rows. */
+export const getSelectedIds = (rowSelection: MRT_RowSelectionState): string[] =>
+  Object.keys(rowSelection).filter((id) => rowSelection[id]);
+
+// ---------------------------------------------------------------------------------------------
+// Filtering & sorting
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * The part of a table row that filter/sorting functions use. Typed structurally so the helpers
+ * below fit any table's `filterFn` / `sortingFn` without generics.
+ */
+interface RowWithValues {
+  getValue<V>(columnId: string): V;
+}
+
+/** Multi-select `filterFn`: matches when the cell value (or any of its items) is selected. */
+export const matchesAnyOf = (
+  row: RowWithValues,
+  columnId: string,
+  filterValue: string[] | undefined,
+): boolean => {
+  if (!filterValue?.length) return true;
+  const value = row.getValue<string | string[]>(columnId);
+  return Array.isArray(value)
+    ? value.some((item) => filterValue.includes(item))
+    : filterValue.includes(value);
+};
+
+/** `sortingFn` that orders by the value's position in `order` instead of alphabetically. */
+export const byRank =
+  (order: readonly string[]) =>
+  (rowA: RowWithValues, rowB: RowWithValues, columnId: string): number =>
+    order.indexOf(rowA.getValue<string>(columnId)) - order.indexOf(rowB.getValue<string>(columnId));
+
+/** `sortingFn` for array cells: compares the items joined into one string. */
+export const byJoinedValues = (
+  rowA: RowWithValues,
+  rowB: RowWithValues,
+  columnId: string,
+): number =>
+  rowA
+    .getValue<string[]>(columnId)
+    .join(',')
+    .localeCompare(rowB.getValue<string[]>(columnId).join(','));
+
+/** Filter options whose label is the value itself. */
+export const toFilterOptions = (values: readonly string[]): FilterOption[] =>
+  values.map((value) => ({ value, label: value }));
+
+/** A column filter value (single or multi) as a list of strings. */
+export const toFilterValues = (value: unknown): string[] =>
+  (Array.isArray(value) ? value : [value]).map(String);
+
+/**
+ * The filter value with `removed` taken out: the remaining values of a multi filter, or
+ * `undefined` (no filter) when nothing is left / for single-value filters.
+ */
+export const withoutFilterValue = (value: unknown, removed: string): string[] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+  const remaining = toFilterValues(value).filter((v) => v !== removed);
+  return remaining.length ? remaining : undefined;
+};
 
 // ---------------------------------------------------------------------------------------------
 // Table state <-> URL
@@ -81,8 +153,9 @@ export const writeColumnFilters = (
 
   filters.forEach(({ id, value }) => {
     if (!(id in config)) return;
-    const values = (Array.isArray(value) ? value : [value]).map(String).filter(Boolean);
-    values.forEach((v) => next.append(id, v));
+    toFilterValues(value)
+      .filter(Boolean)
+      .forEach((v) => next.append(id, v));
   });
 
   return next;
