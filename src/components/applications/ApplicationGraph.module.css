@@ -1,0 +1,63 @@
+.graph {
+  display: block;
+  font-family: var(--mantine-font-family);
+  user-select: none;
+}
+
+.edge {
+  stroke: var(--mantine-color-gray-4);
+  stroke-width: 2;
+}
+
+.appNode {
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.2));
+}
+
+.appLabel {
+  fill: var(--mantine-color-white);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.providerLabel {
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.resourceLabel {
+  fill: var(--mantine-color-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.resourceType {
+  fill: var(--mantine-color-dimmed);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.resourceNode {
+  cursor: pointer;
+  outline: none;
+}
+
+.resourceCircle {
+  transition:
+    transform 120ms ease,
+    filter 120ms ease;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.resourceNode:hover .resourceCircle,
+.resourceNode:focus-visible .resourceCircle {
+  transform: scale(1.15);
+  filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.25));
+}
+
+.resourceNode:hover .resourceLabel,
+.resourceNode:focus-visible .resourceLabel {
+  fill: var(--mantine-primary-color-filled);
+  text-decoration: underline;
+}
